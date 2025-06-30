@@ -3,7 +3,9 @@ version: '3.9'
 x-logging: &default-logging
   driver: "syslog"
   options:
-    syslog-address: "udp://syslog-ng:514"
+    # The logging driver resolves addresses on the host, so we reference
+    # the syslog-ng service via localhost where port 514 is published.
+    syslog-address: "udp://127.0.0.1:514"
     tag: "{{.Name}}"
 
 services:

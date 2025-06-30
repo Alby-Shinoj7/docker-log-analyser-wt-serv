@@ -1,0 +1,72 @@
+version: '3.9'
+
+x-logging: &default-logging
+  driver: "syslog"
+  options:
+    syslog-address: "udp://syslog-ng:514"
+    tag: "{{.Name}}"
+
+services:
+  syslog-ng:
+    image: balabit/syslog-ng:latest
+    ports:
+      - "514:514/udp"
+      - "514:514/tcp"
+    volumes:
+      - ./conf/syslog-ng/syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf:ro
+      - ./logs/syslog-ng:/var/log/syslog-ng
+    networks:
+      - logging
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - "8080:8080"
+    logging: *default-logging
+    networks:
+      - logging
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    ports:
+      - "9100:9100"
+    logging: *default-logging
+    networks:
+      - logging
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./conf/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - cadvisor
+      - node-exporter
+    logging: *default-logging
+    networks:
+      - logging
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./conf/grafana/provisioning:/etc/grafana/provisioning
+      - ./dashboards:/var/lib/grafana/dashboards
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    logging: *default-logging
+    networks:
+      - logging
+
+networks:
+  logging:
+    driver: bridge

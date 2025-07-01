@@ -44,3 +44,10 @@ Logs collected by syslog-ng are stored under `logs/syslog-ng/`.
 
 - Containers are configured with the syslog logging driver to automatically forward their stdout/stderr to syslog-ng.
 - Modify or add dashboards in the `dashboards/` directory and they will be automatically loaded by Grafana.
+
+The stack fails to start because Docker Compose cannot find the "ContainerConfig" key when trying to recreate existing containers. This usually happens when the containers were created with an earlier or mismatched Docker version and their metadata is now unreadable. Removing the old containers and starting fresh usually resolves it:
+
+docker-compose down --volumes
+docker system prune --volumes -f   # optional: removes unused containers/images
+docker-compose pull
+docker-compose up -d
